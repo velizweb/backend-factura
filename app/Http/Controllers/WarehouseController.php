@@ -285,46 +285,47 @@ class WarehouseController extends Controller
     {
         return ProductMovement::where('document_number', $doc_num)
                                 ->with('warehouse_origin', 'product')
-                                ->first();
+                                ->get();
     }
 
     public function acceptTransfer($doc_num)
     {
-        $pm = ProductMovement::where('document_number', $doc_num)
-                                ->first();
-        $branch_destination = $pm->destination_branch;
-        
-        $cond = [
-                ['company_id', $pm->company_id],
-                ['branch_id', $pm->destination_branch],
-                ['warehouse_id', $pm->destination_store],
-                ['product_id', $pm->product_id]
-            ];
+        $pms = ProductMovement::where('document_number', $doc_num)
+                                ->get();
+        foreach ($pms as $pm) {
+            $branch_destination = $pm->destination_branch;
+            
+            $cond = [
+                    ['company_id', $pm->company_id],
+                    ['branch_id', $pm->destination_branch],
+                    ['warehouse_id', $pm->destination_store],
+                    ['product_id', $pm->product_id]
+                ];
 
-        $wd = WarehouseProduct::where($cond)->first();
+            $wd = WarehouseProduct::where($cond)->first();
 
-        if ($wd) {
-            $previousAmount = $wd->quantity;
-            $wd->quantity = $wd->quantity + $pm->amount_send;
-        } else {
-            $previousAmount = 0;
-            $wd =  new WarehouseProduct;
-            $wd->company_id = $pm->company_id;
-            $wd->warehouse_id = $pm->destination_store;
-            $wd->product_id = $pm->product_id;
-            $wd->quantity = $pm->amount_send;   
-            $wd->branch_id = $pm->destination_branch;
-        } 
-        
-        $wd->save();
+            if ($wd) {
+                $previousAmount = $wd->quantity;
+                $wd->quantity = $wd->quantity + $pm->amount_send;
+            } else {
+                $previousAmount = 0;
+                $wd =  new WarehouseProduct;
+                $wd->company_id = $pm->company_id;
+                $wd->warehouse_id = $pm->destination_store;
+                $wd->product_id = $pm->product_id;
+                $wd->quantity = $pm->amount_send;   
+                $wd->branch_id = $pm->destination_branch;
+            } 
+            
+            $wd->save();
 
-        $pm->types = 3;
-        $pm->target_amount = $previousAmount;
-        $pm->current_destination_quantity = $wd->quantity;
-        $pm->reception_date = date('Y-m-d H:i:s');
+            $pm->types = 3;
+            $pm->target_amount = $previousAmount;
+            $pm->current_destination_quantity = $wd->quantity;
+            $pm->reception_date = date('Y-m-d H:i:s');
 
-        $pm->save();            
-
+            $pm->save(); 
+        }
         return 1;
     }
 

@@ -37,7 +37,7 @@ class ProductMovement extends Model
 
     public function product()
     {
-        return $this->hasOne(Product::class, 'id', 'product_id');
+        return $this->hasMany(Product::class, 'id', 'product_id');
     }
 
     public function supplier()
